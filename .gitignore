@@ -1,0 +1,42 @@
+# # Python-generated files
+# __pycache__/
+# *.py[oc]
+# build/
+# dist/
+# wheels/
+# *.egg-info
+
+# # Virtual environments
+# .venv
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Secrets and Config
+.env
+.python-version
+
+# Project Specific
+vector_db/
+data/raw/*.pdf
+data/raw/*.docx
+data/raw/*.txt
+
+# uv specific
+uv.lock
+# Optional: some prefer to commit uv.lock for reproducible builds. 
+# For a RAG project, it's usually better to commit it. 
+# Remove it from here if you want to track it.
+
+# OS files
+.DS_Store
+Thumbs.db

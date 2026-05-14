@@ -5,9 +5,9 @@ from src.rag_project.ingestion import EmbeddingFactory
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
 from langchain_community.vectorstores import Chroma
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 # Setup logging
 logging.basicConfig(level=logging.WARNING, format="%(message)s")
@@ -30,6 +30,10 @@ class LLMFactory:
                 temperature=0
             )
 
+def format_docs(docs):
+    """Utility function to format retrieved documents into a single string."""
+    return "\n\n".join(doc.page_content for doc in docs)
+
 def build_rag_chain():
     # 1. Load Vector Database
     embedding_model = EmbeddingFactory.get_model()
@@ -42,32 +46,37 @@ def build_rag_chain():
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
     # 3. Define the Prompt Template
-    system_prompt = (
-        "You are an assistant for question-answering tasks. "
-        "Use the following pieces of retrieved context to answer the question. "
-        "If you don't know the answer, say that you don't know. "
-        "Use three sentences maximum and keep the answer concise.\n\n"
-        "{context}"
+    template = """You are an assistant for question-answering tasks. 
+    Use the following pieces of retrieved context to answer the question. 
+    If you don't know the answer, say that you don't know. 
+    Use three sentences maximum and keep the answer concise.
+
+    Context: {context}
+    Question: {question}
+
+    Answer:"""
+    
+    prompt = ChatPromptTemplate.from_template(template)
+
+    # 4. Initialize LLM
+    llm = LLMFactory.get_llm()
+    
+    # 5. Build the modern LCEL Chain
+    rag_chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
     )
     
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
-
-    # 4. Initialize LLM and build chains
-    llm = LLMFactory.get_llm()
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-    
-    return rag_chain
+    return rag_chain, retriever
 
 def interactive_chat():
     print(f"\n🤖 RAG System Initialized [{config.MODE.upper()} MODE]")
     print("Type 'exit' or 'quit' to stop.\n")
     print("-" * 50)
     
-    chain = build_rag_chain()
+    chain, retriever = build_rag_chain()
     
     while True:
         user_input = input("\n🧑 You: ")
@@ -81,15 +90,16 @@ def interactive_chat():
         print("🤖 AI: ", end="", flush=True)
         
         # Execute the chain
-        response = chain.invoke({"input": user_input})
+        response = chain.invoke(user_input)
         
         # Print the answer
-        print(response["answer"])
+        print(response)
         
-        # Optional: Print sources for verification
+        # Optional: Print sources for verification by running the retriever separately
+        docs = retriever.invoke(user_input)
         print("\n[Sources]:")
-        for i, doc in enumerate(response["context"]):
-            source = doc.metadata.get("source", "Unknown")
+        for i, doc in enumerate(docs):
+            source = doc.metadata.get("source", "Unknown").split("\\")[-1].split("/")[-1]
             page = doc.metadata.get("page", "Unknown")
             print(f"  - {source} (Page {page})")
 

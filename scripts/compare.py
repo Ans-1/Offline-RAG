@@ -1,4 +1,14 @@
 import sys
+from pathlib import Path
+
+# Add the project root (one level up from this script) to the Python path
+root_dir = Path(__file__).parent.parent
+sys.path.append(str(root_dir))
+
+# NOW you can import your project files
+from src.rag_project import config
+from src.rag_project.retrieval import LLMFactory, build_rag_chain, format_docs
+import sys
 from src.rag_project import config
 from src.rag_project.retrieval import LLMFactory, build_rag_chain, format_docs
 from langchain_core.prompts import ChatPromptTemplate

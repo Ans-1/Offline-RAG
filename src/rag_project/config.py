@@ -40,7 +40,7 @@ else:
     # Offline configuration (Local Models)
     OPENAI_API_KEY = None
     EMBEDDING_MODEL = "all-MiniLM-L6-v2"       # Fast, local HuggingFace embeddings
-    LLM_MODEL = "llama3"                       # Local Ollama model
+    LLM_MODEL = "phi3"                       # Local Ollama model
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 print(f"⚙️ Config Loaded: System is running in [{MODE.upper()}] mode.")
